@@ -28,15 +28,13 @@
 
 package uk.ac.rdg.resc.ncwms.coords;
 
-import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
-import org.opengis.coverage.grid.GridCoordinates;
 import org.opengis.referencing.operation.TransformException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.rdg.resc.ncwms.cdm.DataReadingStrategy;
 
 /**
  *<p>Maps real-world points to i and j indices of corresponding
@@ -71,30 +69,26 @@ import org.slf4j.LoggerFactory;
  * and putting data from/to the HashMaps is a bottleneck.)
  * @see DataReadingStrategy
  */
-public final class PixelMap
+public final class PixelMap implements Iterable<PixelMap.PixelMapEntry>
 {
     private static final Logger logger = LoggerFactory.getLogger(PixelMap.class);
 
     /**
-     * First entry in each int[] is the source grid index: subsequent entries
-     * are the corresponding target grid indices.  Sorted according to
-     * {@link #PIXEL_MAP_ENTRY_COMPARATOR}.  This structure is designed to minimize
-     * the number of object references, which blow up the memory footprint of the
-     * PixelMap.
+     * <p>Maps points in the source grid to points in the target grid.  Each entry
+     * in this array represents a mapping from one source grid point (high four
+     * bytes) to one target grid point (low four bytes).</p>
+     * <p>We use an array of longs instead of an array of objects (e.g. Pair<Integer>
+     * or similar) because each object carries a memory overhead.</p>
      */
-    private final ArrayList<int[]> pixelMapEntries = new ArrayList<int[]>();
-
-    /** Sorts pixel map entries in ascending order of their index in the source grid */
-    private static final Comparator<int[]> PIXEL_MAP_ENTRY_COMPARATOR =
-            new Comparator<int[]>()
-    {
-        @Override
-        public int compare(int[] o1, int[] o2)
-        {
-            // Compare the source grid indices only
-            return o1[0] - o2[0];
-        }
-    };
+    private long[] pixelMapEntries;
+    /** The number of entries in this pixel map */
+    private int numEntries = 0;
+    /**
+     * The array of pixel map entries will grow in size as required by this
+     * number of longs.  This means that the array of pixel map entries will
+     * never be more than {@code chunkSize - 1} greater than it has to be.
+     */
+    private final int chunkSize;
 
     /**
      * Maps a point in the source grid to corresponding points in the target grid.
@@ -124,6 +118,14 @@ public final class PixelMap
     {
         long start = System.currentTimeMillis();
         this.sourceGridISize = horizCoordSys.getXAxisSize();
+
+        // Create an estimate of a suitable chunk size.  We don't want this to
+        // be too small because we would have to do many array copy operations
+        // to grow the array in put().  Conversely we don't want it to be too
+        // large and lead to wasted space.
+        this.chunkSize = pointList.size() / 10;
+        this.pixelMapEntries = new long[this.chunkSize];
+
         if (pointList instanceof HorizontalGrid)
         {
             this.initFromGrid(horizCoordSys, (HorizontalGrid)pointList);
@@ -233,32 +235,19 @@ public final class PixelMap
         // TODO: watch out for overflows (would only happen with a very large grid!)
         int sourceGridIndex = j * this.sourceGridISize + i;
 
-        // Find this entry in the pixel map
-        // Create a dummy entry; the search function will only search on the source grid index
-        int[] pixelMapEntry = new int[2];
-        pixelMapEntry[0] = sourceGridIndex;
-        int entryIndex = Collections.binarySearch(pixelMapEntries, pixelMapEntry, PIXEL_MAP_ENTRY_COMPARATOR);
+        // See if we need to grow the array of pixel map entries
+        if (this.numEntries >= this.pixelMapEntries.length)
+        {
+            long[] newArray = new long[this.pixelMapEntries.length + this.chunkSize];
+            System.arraycopy(this.pixelMapEntries, 0, newArray, 0, this.pixelMapEntries.length);
+            this.pixelMapEntries = newArray;
+        }
 
-        if (entryIndex >= 0)
-        {
-            // We already have an entry for this source grid point
-            // We replace the dummy PME with the one from the list
-            pixelMapEntry = this.pixelMapEntries.get(entryIndex);
-            // Grow the array by one to make room for the new target index
-            int[] newArray = new int[pixelMapEntry.length + 1];
-            System.arraycopy(pixelMapEntry, 0, newArray, 0, pixelMapEntry.length);
-            newArray[newArray.length - 1] = targetGridIndex;
-            // Replace the entry with the new one
-            this.pixelMapEntries.set(entryIndex, newArray);
-        }
-        else
-        {
-            // This source grid point doesn't exist in the list
-            pixelMapEntry[1] = targetGridIndex;
-            // Insert in the list in the correct position
-            int insertionPoint = -entryIndex - 1;
-            this.pixelMapEntries.add(insertionPoint, pixelMapEntry);
-        }
+        // Make an entry in the pixel map.  The source grid index becomes the
+        // high four bytes of the entry (long value) and the targetGridIndex
+        // becomes the low four bytes.
+        this.pixelMapEntries[this.numEntries] = (long)sourceGridIndex << 32 | targetGridIndex;
+        this.numEntries++;
     }
 
     /**
@@ -269,7 +258,7 @@ public final class PixelMap
      */
     public boolean isEmpty()
     {
-        return this.pixelMapEntries.size() == 0;
+        return this.numEntries == 0;
     }
 
     /**
@@ -309,16 +298,21 @@ public final class PixelMap
     }
 
     /**
-     * Gets the number of unique i-j pairs in this pixel map. When combined
+     * <p>Gets the number of unique i-j pairs in this pixel map. When combined
      * with the size of the resulting image we can quantify the under- or
      * oversampling.  This is the number of data points that will be extracted
      * by the {@link DataReadingStrategy#PIXEL_BY_PIXEL PIXEL_BY_PIXEL} data
-     * reading strategy.
+     * reading strategy.</p>
+     * <p>This implementation counts the number of unique pairs by cycling through
+     * the {@link #iterator()} and so is not a cheap operation.  Use sparingly,
+     * e.g. for debugging.</p>
      * @return the number of unique i-j pairs in this pixel map.
      */
     public int getNumUniqueIJPairs()
     {
-        return this.pixelMapEntries.size();
+        int count = 0;
+        for (PixelMapEntry pme : this) count++;
+        return count;
     }
 
     /**
@@ -353,49 +347,80 @@ public final class PixelMap
     }
 
     /**
-     * Returns an unmodifiable list of all the {@link PixelMapEntry}s in this PixelMap.
+     * Returns an unmodifiable iterator over all the {@link PixelMapEntry}s in this PixelMap.
      */
-    public List<PixelMapEntry> getEntries()
+    @Override
+    public Iterator<PixelMapEntry> iterator()
     {
-        return new AbstractList<PixelMapEntry>()
+        return new Iterator<PixelMapEntry>()
         {
+            /** Index in the array of entries */
+            private int index = 0;
+
             @Override
-            public PixelMapEntry get(int index) {
-                final int[] pixelMapEntry = PixelMap.this.pixelMapEntries.get(index);
+            public boolean hasNext() {
+                return index < PixelMap.this.numEntries;
+            }
+
+            @Override
+            public PixelMapEntry next() {
+                long packed = PixelMap.this.pixelMapEntries[this.index];
+                // Unpack the source grid and target grid indices
+                int[] unpacked = unpack(packed);
+                this.index++;
+                final int sourceGridIndex = unpacked[0];
+                final List<Integer> targetGridIndices = new ArrayList<Integer>();
+                targetGridIndices.add(unpacked[1]);
+
+                // Now find all the other entries that use the same source grid
+                // index
+                boolean done = false;
+                while (!done && this.hasNext()) {
+                    packed = PixelMap.this.pixelMapEntries[this.index];
+                    unpacked = unpack(packed);
+                    if (unpacked[0] == sourceGridIndex) {
+                        targetGridIndices.add(unpacked[1]);
+                        this.index++;
+                    } else {
+                        done = true;
+                    }
+                }
+
                 return new PixelMapEntry() {
 
                     @Override
                     public int getSourceGridIIndex() {
-                        int sourceGridIndex = pixelMapEntry[0];
                         return sourceGridIndex % PixelMap.this.sourceGridISize;
                     }
 
                     @Override
                     public int getSourceGridJIndex() {
-                        int sourceGridIndex = pixelMapEntry[0];
                         return sourceGridIndex / PixelMap.this.sourceGridISize;
                     }
 
                     @Override
                     public List<Integer> getTargetGridPoints() {
-                        return new AbstractList<Integer>() {
-                            @Override public Integer get(int index) {
-                                return pixelMapEntry[index + 1];
-                            }
-
-                            @Override public int size() {
-                                return pixelMapEntry.length - 1;
-                            }
-                        };
+                        return targetGridIndices;
                     }
 
                 };
             }
 
             @Override
-            public int size() {
-                return PixelMap.this.pixelMapEntries.size();
+            public void remove() {
+                throw new UnsupportedOperationException("Not supported yet.");
             }
+
+        };
+    }
+
+    /** Unpacks a long integer into two 4-byte integers (first value in array
+     * are the high 4 bytes of the long). */
+    private static int[] unpack(long packed)
+    {
+        return new int[] {
+            (int)(packed >> 32),
+            (int)(packed & 0xffffffff)
         };
     }
 
