@@ -123,7 +123,9 @@ public final class PixelMap implements Iterable<PixelMap.PixelMapEntry>
         // be too small because we would have to do many array copy operations
         // to grow the array in put().  Conversely we don't want it to be too
         // large and lead to wasted space.
-        this.chunkSize = pointList.size() / 10;
+        this.chunkSize = pointList.size() < 1000
+            ? pointList.size()
+            : pointList.size() / 10;
         this.pixelMapEntries = new long[this.chunkSize];
 
         if (pointList instanceof HorizontalGrid)
