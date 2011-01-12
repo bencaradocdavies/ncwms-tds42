@@ -108,11 +108,21 @@ public enum DataReadingStrategy {
         class Scanline
         {
             private final int jIndex;
+            private int iMin = Integer.MAX_VALUE;
+            private int iMax = -1;
             private final List<PixelMapEntry> pixelMapEntries = new ArrayList<PixelMapEntry>();
             
             public Scanline(PixelMapEntry pme)
             {
                 this.jIndex = pme.getSourceGridJIndex();
+                this.addEntry(pme);
+            }
+
+            public void addEntry(PixelMapEntry pme)
+            {
+                int srci = pme.getSourceGridIIndex();
+                iMin = Math.min(srci, iMin);
+                iMax = Math.max(srci, iMax);
                 this.pixelMapEntries.add(pme);
             }
         }
@@ -133,7 +143,7 @@ public enum DataReadingStrategy {
                 int sourceJ = pme.getSourceGridJIndex();
                 if (sourceJ == scanline.jIndex)
                 {
-                    scanline.pixelMapEntries.add(pme);
+                    scanline.addEntry(pme);
                 }
                 else
                 {
@@ -153,9 +163,7 @@ public enum DataReadingStrategy {
                 throws IOException
         {
             ranges.setYRange(scanline.jIndex, scanline.jIndex);
-            int imin = scanline.pixelMapEntries.get(0).getSourceGridIIndex();
-            int imax = scanline.pixelMapEntries.get(scanline.pixelMapEntries.size() - 1).getSourceGridIIndex();
-            ranges.setXRange(imin, imax);
+            ranges.setXRange(scanline.iMin, scanline.iMax);
 
             //logger.debug(ranges.toString());
 
@@ -170,7 +178,7 @@ public enum DataReadingStrategy {
             // Now copy the scanline's data to the picture array
             for (PixelMapEntry pme : scanline.pixelMapEntries)
             {
-                index.setDim(ranges.getXAxisIndex(), pme.getSourceGridIIndex() - imin);
+                index.setDim(ranges.getXAxisIndex(), pme.getSourceGridIIndex() - scanline.iMin);
                 float val = dataChunk.readFloatValue(index);
 
                 // Now we set the value of all the image pixels associated with
