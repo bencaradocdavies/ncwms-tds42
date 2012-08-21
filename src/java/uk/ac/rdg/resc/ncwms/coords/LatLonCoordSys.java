@@ -41,6 +41,8 @@ public final class LatLonCoordSys extends OneDCoordSys
     LatLonCoordSys(OneDCoordAxis lonAxis, OneDCoordAxis latAxis)
     {
         super(lonAxis, latAxis, null);
+        xAxisSize = lonAxis.getSize();
+        yAxisSize = latAxis.getSize();
     }
 
     /**

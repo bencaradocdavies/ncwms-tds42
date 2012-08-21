@@ -41,8 +41,8 @@ import ucar.unidata.geoloc.ProjectionImpl;
  */
 public abstract class HorizontalCoordSys
 {
-    private int xAxisSize;
-    private int yAxisSize;
+    protected int xAxisSize;
+    protected int yAxisSize;
 
     /** Protected constructor to limit direct instantiation to subclasses */
     protected HorizontalCoordSys() {}
