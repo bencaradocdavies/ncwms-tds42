@@ -330,6 +330,7 @@ public abstract class AbstractWmsController extends AbstractController {
         String[] supportedCrsCodes = new String[]{
             "EPSG:4326", "CRS:84", // Plate Carree
             "EPSG:41001", // Mercator (~ Google Maps)  TODO replace with real Google Maps code
+            "EPSG:3857", // WGS 84 / Pseudo-Mercator (used by Google Maps)
             "EPSG:27700", // British National Grid
             // See http://nsidc.org/data/atlas/ogc_services.html for useful
             // stuff about polar stereographic projections

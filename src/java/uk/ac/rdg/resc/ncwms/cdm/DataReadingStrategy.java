@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import ucar.ma2.Index;
 import ucar.nc2.dataset.VariableDS;
 import ucar.nc2.dt.GridDatatype;
-import uk.ac.rdg.resc.ncwms.config.datareader.DataReader;
 import uk.ac.rdg.resc.ncwms.coords.PixelMap;
 import uk.ac.rdg.resc.ncwms.coords.PixelMap.PixelMapEntry;
 

@@ -46,7 +46,7 @@ public abstract class AbstractScalarLayerBuilder<L extends AbstractScalarLayer> 
 
     @Override
     public void setAbstract(L layer, String abstr) {
-        layer.setAbstract(abstr);
+        layer.setLayerAbstract(abstr);
     }
 
     @Override
