@@ -220,7 +220,7 @@ public final class CdmUtils
     public static DataReadingStrategy getOptimumDataReadingStrategy(NetcdfDataset nc)
     {
         String fileType = nc.getFileTypeId();
-        return "netCDF".equals(fileType) || "HDF4".equals(fileType)
+        return "netCDF".equals(fileType) || "HDF4".equals(fileType) || "HDF5".equals(fileType)
             ? DataReadingStrategy.SCANLINE
             : DataReadingStrategy.BOUNDING_BOX;
     }
