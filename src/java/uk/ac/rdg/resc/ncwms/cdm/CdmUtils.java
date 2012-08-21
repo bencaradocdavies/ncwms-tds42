@@ -84,14 +84,16 @@ public final class CdmUtils
 
     static
     {
+        Range zero_range = null;
         try
         {
-            ZERO_RANGE = new Range(0, 0);
+            zero_range = new Range(0, 0);
         }
         catch(InvalidRangeException ire)
         {
             // Won't happen so we do nothing
         }
+        ZERO_RANGE = zero_range;
     }
 
     /** Enforce non-instantiability */
