@@ -424,7 +424,7 @@ public class Config implements ServerConfig, ApplicationContextAware
     }
 
     @Override
-    public String getAbstract() {
+    public String getServerAbstract() {
         return this.server.getAbstract();
     }
 
