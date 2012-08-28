@@ -152,6 +152,10 @@ public final class ImageProducer
      */
     private void createImage(List<List<Float>> data, String label)
     {
+        if (data.size() == 3) {
+            createFalseColorImage(data);
+            return;
+        }
         // Create the pixel array for the frame
         byte[] pixels = new byte[this.picWidth * this.picHeight];
         // We get the magnitude of the input data (takes care of the case
@@ -228,7 +232,39 @@ public final class ImageProducer
         
         this.renderedFrames.add(image);
     }
-    
+
+    /**
+     * Render a false colour image from red, green, and blue components.
+     * 
+     * @param data
+     *            list of three lists for red, green, and blue components
+     */
+    private void createFalseColorImage(List<List<Float>> data) {
+        BufferedImage image = new BufferedImage(this.picWidth, this.picHeight,
+                BufferedImage.TYPE_4BYTE_ABGR);
+        byte[] bytes = ((DataBufferByte) image.getRaster().getDataBuffer())
+                .getData();
+        List<Float> reds = data.get(0);
+        List<Float> greens = data.get(1);
+        List<Float> blues = data.get(2);
+        int n = reds.size();
+        for (int i = 0; i < n; i++) {
+            Float red = reds.get(i);
+            Float green = greens.get(i);
+            Float blue = blues.get(i);
+            int j = i * 4;
+            // raster byte array is zeroed so can be left as-is for transparent
+            // pixels
+            if (red != null && green != null && blue != null) {
+                bytes[j] = (byte) 255; // alpha
+                bytes[j + 1] = blue.byteValue();
+                bytes[j + 2] = green.byteValue();
+                bytes[j + 3] = red.byteValue();
+            }
+        }
+        this.renderedFrames.add(image);
+    }
+
     /**
      * @return the colour index that corresponds to the given value
      */

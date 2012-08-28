@@ -46,9 +46,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
@@ -67,17 +69,18 @@ import org.jfree.ui.HorizontalAlignment;
 import org.jfree.ui.RectangleAnchor;
 import org.jfree.ui.RectangleEdge;
 import org.jfree.ui.TextAnchor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.joda.time.DateTime;
 import org.joda.time.chrono.ISOChronology;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
+
 import uk.ac.rdg.resc.ncwms.coords.CrsHelper;
-import uk.ac.rdg.resc.ncwms.coords.HorizontalPosition;
-import uk.ac.rdg.resc.ncwms.coords.LonLatPosition;
 import uk.ac.rdg.resc.ncwms.coords.HorizontalGrid;
+import uk.ac.rdg.resc.ncwms.coords.HorizontalPosition;
 import uk.ac.rdg.resc.ncwms.coords.LineString;
+import uk.ac.rdg.resc.ncwms.coords.LonLatPosition;
 import uk.ac.rdg.resc.ncwms.coords.PixelMap;
 import uk.ac.rdg.resc.ncwms.coords.PointList;
 import uk.ac.rdg.resc.ncwms.exceptions.CurrentUpdateSequence;
@@ -87,18 +90,19 @@ import uk.ac.rdg.resc.ncwms.exceptions.InvalidUpdateSequence;
 import uk.ac.rdg.resc.ncwms.exceptions.LayerNotDefinedException;
 import uk.ac.rdg.resc.ncwms.exceptions.Wms1_1_1Exception;
 import uk.ac.rdg.resc.ncwms.exceptions.WmsException;
-import uk.ac.rdg.resc.ncwms.graphics.ImageFormat;
-import uk.ac.rdg.resc.ncwms.graphics.KmzFormat;
-import uk.ac.rdg.resc.ncwms.usagelog.UsageLogger;
-import uk.ac.rdg.resc.ncwms.wms.VectorLayer;
 import uk.ac.rdg.resc.ncwms.graphics.ColorPalette;
+import uk.ac.rdg.resc.ncwms.graphics.ImageFormat;
 import uk.ac.rdg.resc.ncwms.graphics.ImageProducer;
+import uk.ac.rdg.resc.ncwms.graphics.KmzFormat;
 import uk.ac.rdg.resc.ncwms.usagelog.UsageLogEntry;
+import uk.ac.rdg.resc.ncwms.usagelog.UsageLogger;
 import uk.ac.rdg.resc.ncwms.util.Range;
 import uk.ac.rdg.resc.ncwms.util.WmsUtils;
 import uk.ac.rdg.resc.ncwms.wms.Dataset;
+import uk.ac.rdg.resc.ncwms.wms.FalseColorLayer;
 import uk.ac.rdg.resc.ncwms.wms.Layer;
 import uk.ac.rdg.resc.ncwms.wms.ScalarLayer;
+import uk.ac.rdg.resc.ncwms.wms.VectorLayer;
 
 /**
  * <p>This Controller is the entry point for all standard WMS operations
@@ -466,8 +470,12 @@ public abstract class AbstractWmsController extends AbstractController {
         for (DateTime timeValue : timeValues) {
             // A List<Float> for each component of a vector quantity, although
             // we only use the first component for scalars.
-            List<List<Float>> picData = new ArrayList<List<Float>>(2);
-            if (layer instanceof ScalarLayer) {
+            List<List<Float>> picData = new ArrayList<List<Float>>(3);
+            if (layer instanceof FalseColorLayer) {
+                picData.add(this.readDataGrid(((FalseColorLayer)layer).getRedComponent(), timeValue, zValue, grid, usageLogEntry));
+                picData.add(this.readDataGrid(((FalseColorLayer)layer).getGreenComponent(), timeValue, zValue, grid, usageLogEntry));
+                picData.add(this.readDataGrid(((FalseColorLayer)layer).getBlueComponent(), timeValue, zValue, grid, usageLogEntry));
+            } else if (layer instanceof ScalarLayer) {
                 // Note that if the layer doesn't have a time axis, timeValue==null but this
                 // will be ignored by readPointList()
                 picData.add(this.readDataGrid((ScalarLayer)layer, timeValue, zValue, grid, usageLogEntry));
