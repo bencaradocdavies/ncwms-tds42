@@ -233,6 +233,12 @@ public final class ImageProducer
         this.renderedFrames.add(image);
     }
 
+    /**
+     * Render a false colour image from red, green, and blue components.
+     * 
+     * @param data
+     *            list of three lists for red, green, and blue components
+     */
     private void createFalseColorImage(List<List<Float>> data) {
         BufferedImage image = new BufferedImage(this.picWidth, this.picHeight,
                 BufferedImage.TYPE_4BYTE_ABGR);
@@ -243,20 +249,17 @@ public final class ImageProducer
         List<Float> blues = data.get(2);
         int n = reds.size();
         for (int i = 0; i < n; i++) {
-            float red = reds.get(i);
-            float green = greens.get(i);
-            float blue = blues.get(i);
+            Float red = reds.get(i);
+            Float green = greens.get(i);
+            Float blue = blues.get(i);
             int j = i * 4;
-            if (Float.isNaN(red) || Float.isNaN(green) || Float.isNaN(blue)) {
-                bytes[j] = 0;
-                bytes[j + 1] = 0;
-                bytes[j + 2] = 0;
-                bytes[j + 3] = 0;
-            } else {
-                bytes[j] = -1;
-                bytes[j + 1] = (byte) blue;
-                bytes[j + 2] = (byte) green;
-                bytes[j + 3] = (byte) red;
+            // raster byte array is zeroed so can be left as-is for transparent
+            // pixels
+            if (red != null && green != null && blue != null) {
+                bytes[j] = (byte) 255; // alpha
+                bytes[j + 1] = blue.byteValue();
+                bytes[j + 2] = green.byteValue();
+                bytes[j + 3] = red.byteValue();
             }
         }
         this.renderedFrames.add(image);
