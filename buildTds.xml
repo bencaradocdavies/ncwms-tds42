@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="ncWMS for TDS" default="cleanBuildNcwmsSrcAndJar" basedir=".">
+<project name="ncWMS for TDS" default="cleanPushSrcJarToThreddsWorkingCopy" basedir=".">
     <description>Build ncwms.jar for use by TDS.</description>
 
   <tstamp>
@@ -19,12 +19,19 @@
   <property name="javac.debuglevel" value="lines,vars,source" />
 
   <property name="src.dir" location="${basedir}/src/java"/>
+  <property name="test-src.dir" location="${basedir}/test"/>
   <property name="lib.dir" location="${basedir}/web/WEB-INF/lib"/>
+  <property name="extra-lib.dir" location="${basedir}/lib"/>
   <property name="build.dir" value="${basedir}/target"/>
   <property name="build.classes.dir" value="${build.dir}/classes"/>
+  <property name="build.test-classes.dir" value="${build.dir}/test-classes"/>
 
   <path id="source.path">
     <pathelement location="${src.dir}"/>
+  </path>
+
+  <path id="test-source.path">
+    <pathelement location="${test-src.dir}"/>
   </path>
 
   <patternset id="sources">
@@ -36,9 +43,12 @@
     <exclude name="uk/ac/rdg/resc/ncwms/usagelog/h2/**/*.java"/>
   </patternset>
 
+  <patternset id="test-sources">
+    <include name="uk/ac/rdg/resc/ncwms/**/*.java"/>
+  </patternset>
+
   <fileset id="compile.libraries" dir="${lib.dir}">
     <patternset id="compile.libs">
-
       <exclude name="bufr-1.4.jar" />
       <exclude name="grib-8.0.jar" />
       <exclude name="h2.jar" />
@@ -48,10 +58,25 @@
 
   <path id="compile.classpath">
     <fileset refid="compile.libraries" />
+    <fileset file="${extra-lib.dir}/servlet-api.jar" />
+  </path>
+
+  <path id="test-compile.classpath">
+    <pathelement path="${build.classes.dir}" />
+    <fileset refid="compile.libraries" />
+    <fileset file="${extra-lib.dir}/junit-4.10.jar" />
+  </path>
+
+  <path id="test.classpath">
+    <pathelement path="${build.test-classes.dir}" />
+    <pathelement path="${build.classes.dir}" />
+    <fileset refid="compile.libraries" />
+    <fileset file="${extra-lib.dir}/junit-4.10.jar" />
   </path>
 
   <target name="init">
     <mkdir dir="${build.classes.dir}"/>
+    <mkdir dir="${build.test-classes.dir}"/>
     <echo message="Initialize ${ant.project.name}"/>
   </target>
 
@@ -67,6 +92,26 @@
       <patternset refid="sources"/>
       <classpath refid="compile.classpath"/>
     </javac>
+  </target>
+
+  <target name="test-compile" depends="compile" description="compile ncwms tests">
+    <javac destdir="${build.test-classes.dir}" source="1.6" target="1.6"
+           debug="${javac.debug}" debuglevel="${javac.debuglevel}"
+           includeAntRuntime="false">
+      <src refid="test-source.path" />
+      <patternset refid="test-sources" />
+      <classpath refid="test-compile.classpath" />
+    </javac>
+  </target>
+
+  <target name="test" depends="test-compile" description="run ncwms tests">
+    <junit haltonfailure="yes" showoutput="yes" printsummary="yes">
+      <classpath refid="test.classpath"/>
+      <batchtest>
+        <fileset dir="${build.test-classes.dir}" includes="**/*Test.class" />
+        <formatter type="plain" usefile="false" />
+      </batchtest>
+    </junit>
   </target>
 
   <property name="ncwms.jar" value="${build.dir}/ncwms.jar" />
@@ -101,9 +146,9 @@
       </manifest>
     </jar>
   </target>
-  <target  name="cleanBuildNcwmsSrcAndJar" depends="clean, compile, buildNcwmsSrc, buildNcwmsJar" />
+  <target  name="cleanBuildNcwmsSrcAndJar" depends="clean, compile, test-compile, test, buildNcwmsSrc, buildNcwmsJar" />
 
-  <property name="tds.lib.dir" value="../thredds-4.2/thredds/lib/release" />
+  <property name="tds.lib.dir" value="../thredds/lib/release" />
   <property name="tds.lib.src.dir" value="${tds.lib.dir}/source" />
 
   <target name="pushSrcJarToThreddsWorkingCopy">
