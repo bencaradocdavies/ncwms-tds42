@@ -333,6 +333,7 @@ public abstract class AbstractWmsController extends AbstractController {
         // TODO: make configurable in admin app
         String[] supportedCrsCodes = new String[]{
             "EPSG:4326", "CRS:84", // Plate Carree
+            "EPSG:4283", // GDA94
             "EPSG:41001", // Mercator (~ Google Maps)  TODO replace with real Google Maps code
             "EPSG:3857", // WGS 84 / Pseudo-Mercator (used by Google Maps)
             "EPSG:27700", // British National Grid
