@@ -12,18 +12,18 @@ public interface FalseColorLayer extends ScalarLayer {
      * Get the layer whose values are interpreted as the red component of the
      * false colour layer.
      */
-    public ScalarLayer getRedComponent();
+    public ScalarLayer getRed();
 
     /**
      * Get the layer whose values are interpreted as the green component of the
      * false colour layer.
      */
-    public ScalarLayer getGreenComponent();
+    public ScalarLayer getGreen();
 
     /**
      * Get the layer whose values are interpreted as the blue component of the
      * false colour layer.
      */
-    public ScalarLayer getBlueComponent();
+    public ScalarLayer getBlue();
 
 }

@@ -473,9 +473,9 @@ public abstract class AbstractWmsController extends AbstractController {
             // we only use the first component for scalars.
             List<List<Float>> picData = new ArrayList<List<Float>>(3);
             if (layer instanceof FalseColorLayer) {
-                picData.add(this.readDataGrid(((FalseColorLayer)layer).getRedComponent(), timeValue, zValue, grid, usageLogEntry));
-                picData.add(this.readDataGrid(((FalseColorLayer)layer).getGreenComponent(), timeValue, zValue, grid, usageLogEntry));
-                picData.add(this.readDataGrid(((FalseColorLayer)layer).getBlueComponent(), timeValue, zValue, grid, usageLogEntry));
+                picData.add(this.readDataGrid(((FalseColorLayer) layer).getRed(), timeValue, zValue, grid, usageLogEntry));
+                picData.add(this.readDataGrid(((FalseColorLayer) layer).getGreen(), timeValue, zValue, grid, usageLogEntry));
+                picData.add(this.readDataGrid(((FalseColorLayer) layer).getBlue(), timeValue, zValue, grid, usageLogEntry));
             } else if (layer instanceof ScalarLayer) {
                 // Note that if the layer doesn't have a time axis, timeValue==null but this
                 // will be ignored by readPointList()
